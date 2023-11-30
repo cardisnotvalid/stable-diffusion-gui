@@ -5,7 +5,7 @@ CORE_DIR = Path(__file__).parent
 BASE_DIR = CORE_DIR.parent
 
 GUI_DIR = CORE_DIR.joinpath("gui")
-GUI_IMAGES = GUI_DIR.joinpath("images")
+GUI_IMAGES = GUI_DIR.joinpath("imgs")
 GUI_ICONS = GUI_DIR.joinpath("icons")
 GUI_CSS = GUI_DIR.joinpath("css")
 
