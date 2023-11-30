@@ -1,6 +1,7 @@
 import base64
 import typing
 import tomllib
+
 from core import exceptions
 from core.api.key import GetimgReger
 from core.paths import SETTINGS_DIR, IMG_DIR
@@ -11,7 +12,7 @@ class HTTPTools:
         return {
             "accept": "application/json",
             "content-type": "application/json",
-            "authorization": f"Bearer {get_api_key()}",
+            "authorization": f"Bearer {get_api_key()}"
         }
 
     def get_payload(self) -> typing.Union[typing.Dict[str, str], typing.Dict]:
@@ -31,18 +32,6 @@ class HTTPTools:
                 GetimgReger().write_api_key()
             else:            
                 raise exceptions.ResponseErrorCode(error_code)
-
-
-def get_config() -> typing.Dict[str, str]:
-    filepath = SETTINGS_DIR.joinpath("config.toml")
-    file = open(filepath, "rb")
-    try:
-        config = tomllib.load(file)
-        return config
-    except (FileExistsError, FileNotFoundError) as e:
-        raise e
-    finally:
-        file.close()
 
 
 def get_api_key() -> str:
