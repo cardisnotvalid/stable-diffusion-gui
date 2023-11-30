@@ -1,5 +1,93 @@
-texttoimage = [ "absolute-reality-v1-8-1", "dream-shaper-v8", "realistic-vision-v5-1", "icbinp-seco", "dark-sushi-mix-v2-25", "absolute-reality-v1-6", "synthwave-punk-v2", "arcane-diffusion", "moonfilm-reality-v3", "moonfilm-utopia-v3", "moonfilm-film-grain-v1", "openjourney-v4", "realistic-vision-v3", "icbinp-final", "icbinp-relapse", "icbinp-afterburn", "xsarchitectural-interior-design", "mo-di-diffusion", "anashel-rpg", "eimis-anime-diffusion-v1-0", "something-v2-2", "icbinp", "analog-diffusion", "neverending-dream", "van-gogh-diffusion", "openjourney-v1-0", "realistic-vision-v1-3", "stable-diffusion-v2-1", "stable-diffusion-v1-5" ]
-controlnet = [ "absolute-reality-v1-8-1", "dream-shaper-v8", "realistic-vision-v5-1", "icbinp-seco", "dark-sushi-mix-v2-25", "absolute-reality-v1-6", "synthwave-punk-v2", "arcane-diffusion", "moonfilm-reality-v3", "moonfilm-utopia-v3", "moonfilm-film-grain-v1", "openjourney-v4", "realistic-vision-v3", "icbinp-final", "icbinp-relapse", "icbinp-afterburn", "xsarchitectural-interior-design", "mo-di-diffusion", "anashel-rpg", "eimis-anime-diffusion-v1-0", "something-v2-2", "icbinp", "analog-diffusion", "neverending-dream", "van-gogh-diffusion", "openjourney-v1-0", "realistic-vision-v1-3", "stable-diffusion-v1-5" ]
-condition = [ "canny-1.1", "softedge-1.1", "mlsd-1.1", "normal-1.1", "depth-1.1", "openpose-1.1", "openpose-full-1.1", "scribble-1.1", "lineart-1.1", "lineart-anime-1.1", "mediapipeface" ]
-upscale = [ "real-esrgan-4x" ]
-facefix = [ "gfpgan-v1-3" ]
+["Text to Image"]
+models = [
+    "absolute-reality-v1-8-1",
+    "dream-shaper-v8",
+    "realistic-vision-v5-1",
+    "icbinp-seco",
+    "dark-sushi-mix-v2-25",
+    "absolute-reality-v1-6",
+    "synthwave-punk-v2",
+    "arcane-diffusion",
+    "moonfilm-reality-v3",
+    "moonfilm-utopia-v3",
+    "moonfilm-film-grain-v1",
+    "openjourney-v4",
+    "realistic-vision-v3",
+    "icbinp-final",
+    "icbinp-relapse",
+    "icbinp-afterburn",
+    "xsarchitectural-interior-design",
+    "mo-di-diffusion",
+    "anashel-rpg",
+    "eimis-anime-diffusion-v1-0",
+    "something-v2-2",
+    "icbinp",
+    "analog-diffusion",
+    "neverending-dream",
+    "van-gogh-diffusion",
+    "openjourney-v1-0",
+    "realistic-vision-v1-3",
+    "stable-diffusion-v2-1",
+    "stable-diffusion-v1-5",
+]
+image = false
+condition = false
+
+["ControlNet"]
+models = [
+    "absolute-reality-v1-8-1",
+    "dream-shaper-v8",
+    "realistic-vision-v5-1",
+    "icbinp-seco",
+    "dark-sushi-mix-v2-25",
+    "absolute-reality-v1-6",
+    "synthwave-punk-v2",
+    "arcane-diffusion",
+    "moonfilm-reality-v3",
+    "moonfilm-utopia-v3",
+    "moonfilm-film-grain-v1",
+    "openjourney-v4",
+    "realistic-vision-v3",
+    "icbinp-final",
+    "icbinp-relapse",
+    "icbinp-afterburn",
+    "xsarchitectural-interior-design",
+    "mo-di-diffusion",
+    "anashel-rpg",
+    "eimis-anime-diffusion-v1-0",
+    "something-v2-2",
+    "icbinp",
+    "analog-diffusion",
+    "neverending-dream",
+    "van-gogh-diffusion",
+    "openjourney-v1-0",
+    "realistic-vision-v1-3",
+    "stable-diffusion-v1-5",
+]
+image = true
+condition = true
+
+["UpScale"]
+models = ["real-esrgan-4x"]
+image = true
+condition = false
+
+["FaceFix"]
+models = ["gfpgan-v1-3"]
+image = true
+condition = false
+
+["Condition"]
+models = [
+    "canny-1.1",
+    "softedge-1.1",
+    "mlsd-1.1",
+    "normal-1.1",
+    "depth-1.1",
+    "openpose-1.1",
+    "openpose-full-1.1",
+    "scribble-1.1",
+    "lineart-1.1",
+    "lineart-anime-1.1",
+    "mediapipeface",
+]
