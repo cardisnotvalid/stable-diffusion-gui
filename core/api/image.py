@@ -1,10 +1,12 @@
 import typing
 import requests
+
 from core import utils
 from core.logger import logger
 
 
 class ImageGenerator(utils.HTTPTools):
+    
     def generate_image(self, width: int = None, height: int =None) -> None:
         if width: self.width = width
         if height: self.height = height
@@ -14,11 +16,13 @@ class ImageGenerator(utils.HTTPTools):
         self.check_response(response)
         
         img_data, seed, _ = response.json().values()
+        utils.write_image(img_data, seed, self.output_format)
         
-        logger.debug(f"Prompt: {self.prompt} | Seed: {seed}")
+        if hasattr(self, "prompt"):
+            prompt = getattr(self, "prompt")
+            logger.debug(f"Prompt: {prompt}")
         logger.info(f"Seed: {seed}")
         
-        utils.write_image(img_data, seed, self.output_format)
         return img_data
 
 
@@ -40,7 +44,6 @@ class TextToImage(ImageGenerator):
             typing.Literal["euler_a", "euler", "lms", "ddim", "dpmsolver++", "pndm"]
         ] = None,
         output_format: typing.Optional[typing.Literal["png", "jpg"]] = "png",
-        set_config: typing.Optional[bool] = False,
     ) -> None:
         self.prompt = prompt
         self.model = model
@@ -52,15 +55,9 @@ class TextToImage(ImageGenerator):
         self.seed = seed
         self.scheduler = scheduler
         self.output_format = output_format
-
-        if set_config is True:
-            config = utils.get_config()["text_to_image"]
-            self.model = config.get("model", self.model)
-            self.width = config.get("width", self.width)
-            self.height = config.get("height", self.height)
-            self.steps = config.get("steps", self.steps)
-            self.scheduler = config.get("scheduler", self.scheduler)
-            self.output_format = config.get("output_format", self.output_format)
+            
+        logger.debug(self.get_payload())
+        logger.info("[Text to Image] Image processing in progress")
 
 
 class ControlNet(ImageGenerator):
@@ -95,7 +92,6 @@ class ControlNet(ImageGenerator):
             typing.Literal["euler_a", "euler", "lms", "ddim", "dpmsolver++", "pndm"]
         ] = None,
         output_format: typing.Optional[typing.Literal["png", "jpg"]] = "png",
-        set_config: typing.Optional[bool] = False,
     ) -> None:
         self.prompt = prompt
         self.image = image
@@ -109,8 +105,42 @@ class ControlNet(ImageGenerator):
         self.seed = seed
         self.scheduler = scheduler
         self.output_format = output_format
+            
+        logger.debug(self.get_payload())
+        logger.info("[ControlNet] Image processing in progress")
+            
 
-        if set_config is True:
-            config = utils.get_config()["controlnet"]
-            self.model = config.get("model", self.model)
-            self.controlnet = config.get("condition", self.controlnet)
+class UpScale(ImageGenerator):
+    BASE_URL = "https://api.getimg.ai/v1/enhancements/upscale"
+    
+    def __init__(
+        self,
+        model: str,
+        image: str,
+        scale: int = 4,
+        output_format: str = "png",
+    ) -> None:
+        self.model = model
+        self.image = image
+        self.sclae = scale
+        self.output_format = output_format
+        
+        logger.debug(self.get_payload())
+        logger.info("[UpScale] Image processing in progress")
+
+
+class FaceFix(ImageGenerator):
+    BASE_URL = "https://api.getimg.ai/v1/enhancements/face-fix"
+    
+    def __init__(
+        self,
+        model: str,
+        image: str,
+        output_format: str = "png",
+    ) -> None:
+        self.model = model
+        self.image = image
+        self.output_format = output_format
+        
+        logger.debug(self.get_payload())
+        logger.info("[FaceFix] Image processing in progress")
