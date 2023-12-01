@@ -62,7 +62,7 @@ class ImageGeneratorThread(QtCore.QThread):
 
 
 class MainWindow(UI):
-    IMG_FOLDER = os.path.join(os.getcwd(), "images")
+    IMG_FOLDER = os.path.join(os.path.expanduser("~"), "Pictures")
     
     def __init__(self) -> None:
         super().__init__()
@@ -172,7 +172,7 @@ class MainWindow(UI):
 
     def open_image(self) -> None:
         filename, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Open", "images", "Image File (*.png; *.jpeg)"
+            self, "Open", self.IMG_FOLDER, "Image File (*.png; *.jpeg)"
         )
         if filename:
             self.update_left_img(filename=filename)
@@ -213,7 +213,7 @@ class MainWindow(UI):
         
     def set_image_dict(self) -> None:
         folder_name = QtWidgets.QFileDialog.getExistingDirectory(
-            self, "Open Directory", "", QtWidgets.QFileDialog.ShowDirsOnly | QtWidgets.QFileDialog.DontResolveSymlinks
+            self, "Open Directory", self.IMG_FOLDER, QtWidgets.QFileDialog.ShowDirsOnly | QtWidgets.QFileDialog.DontResolveSymlinks
         )
         if folder_name:
             return self.update_img_dict(folder_name)
