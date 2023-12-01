@@ -1,38 +1,65 @@
 import typing
 import requests
 
-from core import utils
+from core import exceptions
 from core.logger import logger
+from core.constants import URLs
+from core.utils import get_api_key
+from core.api.key import GetimgReger
 
 
-class ImageGenerator(utils.HTTPTools):
-    
-    def generate_image(self, width: int = None, height: int =None) -> None:
-        if width: self.width = width
-        if height: self.height = height
-        payload, headers = self.get_payload(), self.get_headers()
+class BaseRequest:
+    def get_headers(self) -> typing.Dict[str, str]:
+        return {
+            "accept": "application/json",
+            "content-type": "application/json",
+            "authorization": f"Bearer {get_api_key()}"
+        }
+
+    def get_payload(self) -> typing.Union[typing.Dict[str, str], typing.Dict]:
+        payload = {}
+        for key, value in self.__dict__.items():
+            if value is not None:
+                payload[key] = value
+        return payload
+
+    def check_response(self, response: requests.Response) -> typing.Optional[bool]:
+        resp_json = response.json()
+
+        if resp_json.get("error"):
+            error_code = resp_json["error"]["code"]
+            
+            if error_code == "quota_exceeded":
+                GetimgReger().write_api_key()
+                return True
+            else:            
+                raise exceptions.ResponseErrorCode(error_code)
+
+
+class BaseGenerator(BaseRequest):
+    def __init__(self) -> None:
+        super().__init__()
+
+    def generate_image(self) -> typing.Tuple[str, int]:
+        payload = self.get_payload()
+        headers = self.get_headers()
         
         response = requests.post(self.BASE_URL, json=payload, headers=headers)
-        self.check_response(response)
         
-        img_data, seed, _ = response.json().values()
-        utils.write_image(img_data, seed, self.output_format)
+        if self.check_response(response) is True:
+            return self.generate_image()
         
-        if hasattr(self, "prompt"):
-            prompt = getattr(self, "prompt")
-            logger.debug(f"Prompt: {prompt}")
+        imgb64, seed, _ = response.json().values()
         logger.info(f"Seed: {seed}")
-        
-        return img_data
+        return imgb64, seed
 
 
-class TextToImage(ImageGenerator):
-    BASE_URL = "https://api.getimg.ai/v1/stable-diffusion/text-to-image"
+class TextToImage(BaseGenerator):
+    BASE_URL = URLs.TEXT_TO_IMAGE
 
     def __init__(
         self,
         prompt: str,
-        *,
         model: typing.Optional[str] = None,
         negative_prompt: typing.Optional[str] = None,
         width: typing.Optional[int] = None,
@@ -40,11 +67,11 @@ class TextToImage(ImageGenerator):
         steps: typing.Optional[int] = None,
         guidance: typing.Optional[float] = None,
         seed: typing.Optional[int] = None,
-        scheduler: typing.Optional[
-            typing.Literal["euler_a", "euler", "lms", "ddim", "dpmsolver++", "pndm"]
-        ] = None,
-        output_format: typing.Optional[typing.Literal["png", "jpg"]] = "png",
+        scheduler: typing.Optional[str] = None,
+        output_format: typing.Optional[str] = "png",
     ) -> None:
+        super().__init__()
+        
         self.prompt = prompt
         self.model = model
         self.negative_prompt = negative_prompt
@@ -60,27 +87,14 @@ class TextToImage(ImageGenerator):
         logger.info("[Text to Image] Image processing in progress")
 
 
-class ControlNet(ImageGenerator):
-    BASE_URL = "https://api.getimg.ai/v1/stable-diffusion/controlnet"
+class ControlNet(BaseGenerator):
+    BASE_URL = URLs.CONTROL_NET
     
     def __init__(
         self,
         prompt: str,
         image: str,
-        condition: typing.Literal[
-            "canny-1.1", 
-            "softedge-1.1",
-            "mlsd-1.1",
-            "normal-1.1",
-            "depth-1.1",
-            "openpose-1.1",
-            "openpose-full-1.1",
-            "scribble-1.1",
-            "lineart-1.1",
-            "lineart-anime-1.1",
-            "mediapipeface"
-        ] = "canny-1.1",
-        *,
+        condition: typing.Optional[str] = "canny-1.1",
         model: typing.Optional[str] = None,
         negative_prompt: typing.Optional[str] = None,
         width: typing.Optional[int] = None,
@@ -88,11 +102,11 @@ class ControlNet(ImageGenerator):
         steps: typing.Optional[int] = None,
         guidance: typing.Optional[float] = None,
         seed: typing.Optional[int] = None,
-        scheduler: typing.Optional[
-            typing.Literal["euler_a", "euler", "lms", "ddim", "dpmsolver++", "pndm"]
-        ] = None,
-        output_format: typing.Optional[typing.Literal["png", "jpg"]] = "png",
+        scheduler: typing.Optional[str] = None,
+        output_format: typing.Optional[str] = "png",
     ) -> None:
+        super().__init__()
+        
         self.prompt = prompt
         self.image = image
         self.controlnet = condition
@@ -110,34 +124,38 @@ class ControlNet(ImageGenerator):
         logger.info("[ControlNet] Image processing in progress")
             
 
-class UpScale(ImageGenerator):
-    BASE_URL = "https://api.getimg.ai/v1/enhancements/upscale"
+class UpScale(BaseGenerator):
+    BASE_URL = URLs.UP_SCALE
     
     def __init__(
         self,
-        model: str,
         image: str,
-        scale: int = 4,
-        output_format: str = "png",
+        model: typing.Optional[str] = None,
+        scale: typing.Optional[int] = 4,
+        output_format: typing.Optional[str] = "png",
     ) -> None:
+        super().__init__()
+        
         self.model = model
         self.image = image
-        self.sclae = scale
+        self.scale = scale
         self.output_format = output_format
         
         logger.debug(self.get_payload())
         logger.info("[UpScale] Image processing in progress")
 
 
-class FaceFix(ImageGenerator):
-    BASE_URL = "https://api.getimg.ai/v1/enhancements/face-fix"
+class FaceFix(BaseGenerator):
+    BASE_URL = URLs.FACE_FIX
     
     def __init__(
         self,
-        model: str,
         image: str,
-        output_format: str = "png",
+        model: typing.Optional[str] = None,
+        output_format: typing.Optional[str] = "png",
     ) -> None:
+        super().__init__()
+        
         self.model = model
         self.image = image
         self.output_format = output_format

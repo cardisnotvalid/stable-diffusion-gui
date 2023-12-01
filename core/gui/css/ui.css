@@ -19,6 +19,15 @@ QLabel#loading_label {
     padding: 5px;
 }
 
+QLabel#image_dict {
+    background-color: #272829;
+    border: 1px solid #424141;
+    border-radius: 2.5px;
+    color: #807f7f;
+    padding: 5px;
+    font-style: italic;
+}
+
 QLabel {
     background-color: #111111;
     border: 1px solid #2b2a2a;

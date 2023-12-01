@@ -121,6 +121,7 @@ class UI(QtWidgets.QWidget):
         self.cont_text = QtWidgets.QWidget()
         self.cont_menu = QtWidgets.QWidget()
         self.cont_opts = QtWidgets.QWidget()
+        self.cont_img_dict = QtWidgets.QWidget()
         self.cont_imgs = QtWidgets.QWidget()
         self.cont_bottom = QtWidgets.QWidget()
     
@@ -131,15 +132,19 @@ class UI(QtWidgets.QWidget):
         self.layout_text = HLayout(self.cont_text, columns=2)
         self.layout_menu = HLayout(self.cont_menu, columns=2)
         self.layout_opts = HLayout(self.cont_opts, columns=3)
+        self.layout_img_dict = HLayout(self.cont_img_dict, columns=2)
         self.layout_imgs = HLayout(self.cont_imgs, columns=2)
         self.layout_bottom = HLayout(self.cont_bottom, columns=2)
         
         self.layout_main.addWidgets(
-            self.cont_text, self.cont_menu, self.cont_opts, self.cont_imgs, self.cont_bottom)
+            self.cont_text, self.cont_menu, self.cont_opts, 
+            self.cont_img_dict, self.cont_imgs, self.cont_bottom)
     
     def create_widgets(self) -> None:
         self.prompt = TextEdit(placeholder="Prompt")
         self.nprompt = TextEdit(placeholder="Negative Prompt")
+        self.prompt.setAcceptRichText(False)
+        self.nprompt.setAcceptRichText(False)
         
         self.btn_generate = Button(text="Generate")
         self.btn_generate_type = ComboBox()
@@ -147,6 +152,10 @@ class UI(QtWidgets.QWidget):
         self.btn_model = ComboBox()
         self.btn_image = Button(text="Image")
         self.btn_condition = ComboBox()
+        
+        self.btn_image_dict = Button(text="Image Directory")
+        self.image_dict = Label(text="image_dict")
+        self.image_dict.setEnabled(False)
         
         self.left_img = Label(height=512, width=512, image=True)
         self.right_img = Label(height=512, width=512, image=True)
@@ -167,6 +176,9 @@ class UI(QtWidgets.QWidget):
         self.layout_text.addWidgets(self.prompt, self.nprompt)
         self.layout_menu.addWidgets(self.btn_generate, self.btn_generate_type)
         self.layout_opts.addWidgets(self.btn_model, self.btn_image, self.btn_condition)
+        self.layout_img_dict.addWidgets(self.btn_image_dict, self.image_dict)
         self.layout_imgs.addWidgets(self.left_img, self.right_img)
         self.layout_bottom.addWidgets(self.btn_clear, self.btn_swap)
         self.layout_menu.insertWidget(0, self.loading_label)
+        self.layout_img_dict.setStretch(0, 1)
+        self.layout_img_dict.setStretch(1, 5)

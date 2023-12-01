@@ -1,3 +1,4 @@
+import os
 import sys
 import base64
 import typing
@@ -6,11 +7,12 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 
 from core.gui.ui import UI
 from core.utils import get_models
-from core.api.image import TextToImage, ControlNet, UpScale, FaceFix
+from core.api.generators import TextToImage, ControlNet, UpScale, FaceFix
 
 
 class ImageGeneratorThread(QtCore.QThread):
-    result_ready = QtCore.pyqtSignal(str)
+    b64_ready = QtCore.pyqtSignal(str)
+    seed_ready = QtCore.pyqtSignal(str, int)
     finish = QtCore.pyqtSignal()
     
     def __init__(
@@ -33,14 +35,14 @@ class ImageGeneratorThread(QtCore.QThread):
         
     def run(self) -> None:
         if self.generator_type == "Text to Image":
-            b64 = TextToImage(
+            b64, seed = TextToImage(
                 prompt=self.prompt,
                 negative_prompt=self.npropmt,
                 model=self.model,
             ).generate_image()
         
         elif self.generator_type == "ControlNet":
-            b64 = ControlNet(
+            b64, seed = ControlNet(
                 prompt=self.prompt,
                 negative_prompt=self.npropmt,
                 model=self.model,
@@ -49,21 +51,24 @@ class ImageGeneratorThread(QtCore.QThread):
             ).generate_image()
         
         elif self.generator_type == "UpScale":
-            b64 = UpScale(model=self.model, image=self.image).generate_image()
+            b64, seed = UpScale(model=self.model, image=self.image).generate_image()
             
         elif self.generator_type == "FaceFix":
-            b64 = FaceFix(model=self.model, image=self.image).generate_image()
+            b64, seed = FaceFix(model=self.model, image=self.image).generate_image()
         
-        self.result_ready.emit(b64)
+        self.b64_ready.emit(b64)
+        self.seed_ready.emit(b64, seed)
         self.finish.emit()
 
 
-
 class MainWindow(UI):
+    IMG_FOLDER = os.path.join(os.getcwd(), "images")
+    
     def __init__(self) -> None:
         super().__init__()
         
         self.models = get_models()
+        self.image_dict.setText(self.IMG_FOLDER)
         
         self.init_logic()
         self.init_hotkey()
@@ -74,19 +79,36 @@ class MainWindow(UI):
         text = " ".join(word for word in text.split())
         return text
     
+    def _save_image(self, b64: str, seed: str) -> None:
+        if not os.path.exists(self.IMG_FOLDER):
+            os.makedirs(self.IMG_FOLDER)
+        
+        filepath = (f"{self.IMG_FOLDER}\\{seed}.png")
+        with open(filepath, "wb") as file:
+            file.write(base64.b64decode(b64.encode()))
+    
     def init_logic(self) -> None:
         self.btn_generate.pressed.connect(self.generate_image)
         self.btn_generate_type.currentTextChanged.connect(self.update_opts_buttons)
         self.btn_image.pressed.connect(self.open_image)
         self.btn_clear.pressed.connect(self.clear_imgs)
         self.btn_swap.pressed.connect(self.swap_imgs)
+        self.btn_image_dict.pressed.connect(self.set_image_dict)
     
     def init_hotkey(self) -> None:
         self.key_esc = QtWidgets.QShortcut(QtGui.QKeySequence("Esc"), self)
-        self.key_ctrl_enter = QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+Return"), self)
+        self.key_gen = QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+Return"), self)
+        self.key_clear = QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+D"), self)
+        self.key_swap = QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+S"), self)
+        self.key_prompt = QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+1"), self)
+        self.key_nprompt = QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+2"), self)
         
         self.key_esc.activated.connect(QtWidgets.qApp.quit)
-        self.key_ctrl_enter.activated.connect(self.generate_image)
+        self.key_gen.activated.connect(self.generate_image)
+        self.key_clear.activated.connect(self.clear_imgs)
+        self.key_swap.activated.connect(self.swap_imgs)
+        self.key_prompt.activated.connect(self.prompt.setFocus)
+        self.key_nprompt.activated.connect(self.nprompt.setFocus)
         
     def setup_models(self) -> None:
         self.btn_generate_type.addItems(list(self.models.keys())[:-1])
@@ -129,9 +151,11 @@ class MainWindow(UI):
             generator_type=curr_generator_type,
         )
         if curr_generator_type == "Text to Image":
-            self.worker.result_ready.connect(self.update_left_img)
+            self.worker.b64_ready.connect(self.update_left_img)
         else:
-            self.worker.result_ready.connect(self.update_right_img)
+            self.worker.b64_ready.connect(self.update_right_img)
+        
+        self.worker.seed_ready.connect(self._save_image)
         self.worker.finish.connect(self.stop_worker)
         self.worker.start()
                 
@@ -186,6 +210,17 @@ class MainWindow(UI):
             return
         self.left_img.setPixmap(right_img)
         self.right_img.setPixmap(left_img)
+        
+    def set_image_dict(self) -> None:
+        folder_name = QtWidgets.QFileDialog.getExistingDirectory(
+            self, "Open Directory", "", QtWidgets.QFileDialog.ShowDirsOnly | QtWidgets.QFileDialog.DontResolveSymlinks
+        )
+        if folder_name:
+            return self.update_img_dict(folder_name)
+    
+    def update_img_dict(self, folder_name: str) -> None:
+        self.image_dict.setText(folder_name)
+        self.IMG_FOLDER = folder_name
 
         
 def start_app() -> None:
