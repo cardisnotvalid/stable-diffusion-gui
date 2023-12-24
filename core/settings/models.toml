@@ -91,3 +91,13 @@ models = [
     "lineart-anime-1.1",
     "mediapipeface",
 ]
+
+["Scheduler"]
+models = [
+    "euler_a", 
+    "euler", 
+    "lms", 
+    "ddim", 
+    "dpmsolver++", 
+    "pndm"
+]

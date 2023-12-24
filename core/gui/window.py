@@ -27,6 +27,7 @@ class ImageGeneratorThread(QtCore.QThread):
         width: typing.Optional[int] = None,
         steps: typing.Optional[int] = None,
         guidance: typing.Optional[int] = None,
+        scheduler: typing.Optional[str] = None,
     ):
         super().__init__()
         
@@ -40,6 +41,7 @@ class ImageGeneratorThread(QtCore.QThread):
         self.width = width
         self.steps = steps
         self.guidance = guidance
+        self.scheduler = scheduler
         
     def run(self) -> None:
         if self.generatorType == "Text to Image":
@@ -50,7 +52,8 @@ class ImageGeneratorThread(QtCore.QThread):
                 height=self.height,
                 width=self.width,
                 steps=self.steps,
-                guidance=self.guidance
+                guidance=self.guidance,
+                scheduler=self.scheduler
             ).generate_image()
         
         elif self.generatorType == "ControlNet":
@@ -63,7 +66,8 @@ class ImageGeneratorThread(QtCore.QThread):
                 height=self.height,
                 width=self.width,
                 steps=self.steps,
-                guidance=self.guidance
+                guidance=self.guidance,
+                scheduler=self.scheduler
             ).generate_image()
         
         elif self.generatorType == "UpScale":
@@ -127,7 +131,7 @@ class MainWindow(UI):
         self.key_nprompt.activated.connect(self.negativePrompt.setFocus)
         
     def setup_models(self) -> None:
-        self.buttonGenerateType.addItems(list(self.models.keys())[:-1])
+        self.buttonGenerateType.addItems(list(self.models.keys())[:-2])
         self.buttonGenerateType.setCurrentText(list(self.models.keys())[0])
     
     def start_worker(self) -> None:
@@ -161,6 +165,7 @@ class MainWindow(UI):
         width = validateSize(convertToFloat(self.inputWidth))
         steps = validateSteps(convertToFloat(self.inputSteps))
         guidance = validateGuidance(convertToFloat(self.inputGuidance))
+        scheduler = self.buttonScheduler.currentText()
                 
         if not prompt and currentGeneratorType not in {"UpScale", "FaceFix"}:
             return
@@ -176,7 +181,8 @@ class MainWindow(UI):
             height=height,
             width=width,
             steps=steps,
-            guidance=guidance
+            guidance=guidance,
+            scheduler=scheduler,
         )
         if currentGeneratorType == "Text to Image":
             self.worker.b64_ready.connect(self.update_left_img)
@@ -189,14 +195,34 @@ class MainWindow(UI):
                 
     
     def update_opts_buttons(self) -> None:
-        curr_model = self.buttonModel.currentText()
-        curr_generate_type = self.buttonGenerateType.currentText()
-        self.buttonCondition.addItems(self.models["Condition"]["models"])
+        currentModel = self.buttonModel.currentText()
+        currentGenerateType = self.buttonGenerateType.currentText()
+        
+        self.buttonScheduler.addItems(self.models["Scheduler"]["models"])
         self.buttonModel.clear()
-        self.buttonModel.addItems(self.models[curr_generate_type]["models"])
-        self.buttonOpenImg.setEnabled(self.models[curr_generate_type]["image"])
-        self.buttonCondition.setEnabled(self.models[curr_generate_type]["condition"])
-        self.buttonModel.setCurrentText(curr_model)
+        self.buttonModel.addItems(self.models[currentGenerateType]["models"])
+        self.buttonCondition.clear()
+        self.buttonCondition.addItems(self.models["Condition"]["models"])
+        
+        self.buttonModel.setCurrentText(currentModel)
+        
+        self.buttonOpenImg.setEnabled(self.models[currentGenerateType]["image"])
+        self.buttonCondition.setEnabled(self.models[currentGenerateType]["condition"])
+        
+        if currentGenerateType in {"Text to Image", "ControlNet"}:
+            self.inputWidth.setEnabled(True)
+            self.inputHeight.setEnabled(True)
+            self.inputSteps.setEnabled(True)
+            self.inputGuidance.setEnabled(True)
+            self.inputStrength.setEnabled(True)
+            self.buttonScheduler.setEnabled(True)
+        else:
+            self.inputWidth.setEnabled(False)
+            self.inputHeight.setEnabled(False)
+            self.inputSteps.setEnabled(False)
+            self.inputGuidance.setEnabled(False)
+            self.inputStrength.setEnabled(False)
+            self.buttonScheduler.setEnabled(False)
 
     def open_image(self) -> None:
         filename, _ = QtWidgets.QFileDialog.getOpenFileName(

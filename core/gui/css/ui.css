@@ -42,17 +42,14 @@ QPushButton:pressed {
     background-color: #0e0f0f;
 }
 
-QPushButton:disabled {
-    background-color: #111111;
-    border: 1px solid #424141;
-    color: #383736;
-}
-
 QComboBox:hover {
     background-color: #19191a;
 }
 
-QComboBox:disabled {
+QPushButton:disabled,
+QLineEdit:disabled,
+QComboBox:disabled
+{
     background-color: #111111;
     border: 1px solid #424141;
     color: #383736;

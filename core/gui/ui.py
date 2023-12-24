@@ -108,6 +108,18 @@ class Label(QtWidgets.QLabel):
         
         if width: self.setFixedWidth(width)
         if height: self.setFixedHeight(height)
+        
+
+class LineEdit(QtWidgets.QLineEdit):
+    def __init__(
+        self,
+        parent: typing.Optional[QtWidgets.QWidget] = None,
+        text: typing.Optional[str] = None,
+    ) -> None:
+        super().__init__(parent=parent)
+        
+        self.setPlaceholderText(text)
+        self.setSizePolicy(5, 5)
 
 
 class UI(QtWidgets.QWidget):
@@ -142,7 +154,7 @@ class UI(QtWidgets.QWidget):
         self.layoutPrompt = HLayout(self.containerPrompt, columns=2)
         self.layoutGenButtons = HLayout(self.containerGenButtons, columns=2)
         self.layoutGenOptions = HLayout(self.containerGenOptions, columns=3)
-        self.layoutGenOptionals = HLayout(self.containerGenOptionals, columns=4)
+        self.layoutGenOptionals = HLayout(self.containerGenOptionals, columns=6)
         self.layoutImgDirectory = HLayout(self.containerImgDirectory, columns=2)
         self.layoutResultImgs = HLayout(self.containerResultImgs, columns=2)
         self.layoutResultButtons = HLayout(self.containerResultButtons, columns=2)
@@ -177,19 +189,25 @@ class UI(QtWidgets.QWidget):
         self.layoutGenOptions.addWidgets(self.buttonModel, self.buttonOpenImg, self.buttonCondition)
         
         # Generation optionals values
-        self.inputWidth = QtWidgets.QLineEdit()
-        self.inputHeight = QtWidgets.QLineEdit()
-        self.inputSteps = QtWidgets.QLineEdit()
-        self.inputGuidance = QtWidgets.QLineEdit()
+        self.inputWidth = LineEdit(text="Width (256 - 1024)")
+        self.inputHeight = LineEdit(text="Height (256 - 1024)")
+        self.inputSteps = LineEdit(text="Steps (1 - 100)")
+        self.inputGuidance = LineEdit(text="Guidance (0 - 20)")
+        self.inputStrength = LineEdit(text="Strength (0.01 - 3.0)")
+        self.buttonScheduler = ComboBox()
         self.inputWidth.setValidator(QtGui.QIntValidator(256, 1024, self))
         self.inputHeight.setValidator(QtGui.QIntValidator(256, 1024, self))
         self.inputSteps.setValidator(QtGui.QIntValidator(1, 100, self))
         self.inputGuidance.setValidator(QtGui.QDoubleValidator(0.0, 20.0, 1))
-        self.inputHeight.setPlaceholderText("Height (256 - 1024)")
-        self.inputWidth.setPlaceholderText("Width (256 - 1024)")
-        self.inputSteps.setPlaceholderText("Steps (1 - 100)")
-        self.inputGuidance.setPlaceholderText("Guidance (0 - 20)")
-        self.layoutGenOptionals.addWidgets(self.inputWidth, self.inputHeight, self.inputSteps, self.inputGuidance)
+        self.inputStrength.setValidator(QtGui.QDoubleValidator(0.01, 3.0, 2))
+        self.layoutGenOptionals.addWidgets(
+            self.inputWidth, 
+            self.inputHeight, 
+            self.inputSteps, 
+            self.inputGuidance, 
+            self.inputStrength,
+            self.buttonScheduler,
+        )
         
         # Set image save directory
         self.buttonImgDirectory = Button(text="Image Directory")
