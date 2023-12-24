@@ -19,41 +19,57 @@ class ImageGeneratorThread(QtCore.QThread):
         self, 
         model: str,
         prompt: typing.Optional[str] = None,
-        nprompt: typing.Optional[str] = None,
-        generator_type: str = "Text to Image",
+        negativePrompt: typing.Optional[str] = None,
+        currentGeneratorType: str = "Text to Image",
         image: typing.Optional[str] = None,
         condition: typing.Optional[str] = None,
+        height: typing.Optional[int] = None,
+        width: typing.Optional[int] = None,
+        steps: typing.Optional[int] = None,
+        guidance: typing.Optional[int] = None,
     ):
         super().__init__()
         
         self.prompt = prompt
-        self.npropmt = nprompt
+        self.negativePrompt = negativePrompt
         self.model = model
         self.image = image
         self.condition = condition
-        self.generator_type = generator_type
+        self.generatorType = currentGeneratorType
+        self.height = height
+        self.width = width
+        self.steps = steps
+        self.guidance = guidance
         
     def run(self) -> None:
-        if self.generator_type == "Text to Image":
+        if self.generatorType == "Text to Image":
             b64, seed = TextToImage(
                 prompt=self.prompt,
-                negative_prompt=self.npropmt,
+                negative_prompt=self.negativePrompt,
                 model=self.model,
+                height=self.height,
+                width=self.width,
+                steps=self.steps,
+                guidance=self.guidance
             ).generate_image()
         
-        elif self.generator_type == "ControlNet":
+        elif self.generatorType == "ControlNet":
             b64, seed = ControlNet(
                 prompt=self.prompt,
-                negative_prompt=self.npropmt,
+                negative_prompt=self.negativePrompt,
                 model=self.model,
                 image=self.image,
                 condition=self.condition,
+                height=self.height,
+                width=self.width,
+                steps=self.steps,
+                guidance=self.guidance
             ).generate_image()
         
-        elif self.generator_type == "UpScale":
+        elif self.generatorType == "UpScale":
             b64, seed = UpScale(model=self.model, image=self.image).generate_image()
             
-        elif self.generator_type == "FaceFix":
+        elif self.generatorType == "FaceFix":
             b64, seed = FaceFix(model=self.model, image=self.image).generate_image()
         
         self.b64_ready.emit(b64)
@@ -68,7 +84,7 @@ class MainWindow(UI):
         super().__init__()
         
         self.models = get_models()
-        self.image_dict.setText(self.IMG_FOLDER)
+        self.imgDirectory.setText(self.IMG_FOLDER)
         
         self.init_logic()
         self.init_hotkey()
@@ -88,12 +104,12 @@ class MainWindow(UI):
             file.write(base64.b64decode(b64.encode()))
     
     def init_logic(self) -> None:
-        self.btn_generate.pressed.connect(self.generate_image)
-        self.btn_generate_type.currentTextChanged.connect(self.update_opts_buttons)
-        self.btn_image.pressed.connect(self.open_image)
-        self.btn_clear.pressed.connect(self.clear_imgs)
-        self.btn_swap.pressed.connect(self.swap_imgs)
-        self.btn_image_dict.pressed.connect(self.set_image_dict)
+        self.buttonGenerate.pressed.connect(self.generate_image)
+        self.buttonGenerateType.currentTextChanged.connect(self.update_opts_buttons)
+        self.buttonOpenImg.pressed.connect(self.open_image)
+        self.buttonClearImgs.pressed.connect(self.clear_imgs)
+        self.buttonSwapImgs.pressed.connect(self.swap_imgs)
+        self.buttonImgDirectory.pressed.connect(self.set_image_dict)
     
     def init_hotkey(self) -> None:
         self.key_esc = QtWidgets.QShortcut(QtGui.QKeySequence("Esc"), self)
@@ -108,49 +124,61 @@ class MainWindow(UI):
         self.key_clear.activated.connect(self.clear_imgs)
         self.key_swap.activated.connect(self.swap_imgs)
         self.key_prompt.activated.connect(self.prompt.setFocus)
-        self.key_nprompt.activated.connect(self.nprompt.setFocus)
+        self.key_nprompt.activated.connect(self.negativePrompt.setFocus)
         
     def setup_models(self) -> None:
-        self.btn_generate_type.addItems(list(self.models.keys())[:-1])
-        self.btn_generate_type.setCurrentText(list(self.models.keys())[0])
+        self.buttonGenerateType.addItems(list(self.models.keys())[:-1])
+        self.buttonGenerateType.setCurrentText(list(self.models.keys())[0])
     
     def start_worker(self) -> None:
-        self.btn_generate.setEnabled(False)
-        self.btn_generate.hide()
-        self.loading_label.show()
-        self.loading_movie.start()
+        self.buttonGenerate.setEnabled(False)
+        self.buttonGenerate.hide()
+        self.loadingAnim.show()
+        self.loadingMovie.start()
         
     def stop_worker(self) -> None:
         self.worker.quit()
         self.worker.wait()
         
-        self.loading_movie.stop()
-        self.loading_label.hide()
-        self.btn_generate.show()
-        self.btn_generate.setEnabled(True)
+        self.loadingMovie.stop()
+        self.loadingAnim.hide()
+        self.buttonGenerate.show()
+        self.buttonGenerate.setEnabled(True)
     
     def generate_image(self) -> None:
-        curr_generator_type = self.btn_generate_type.currentText()
+        convertToFloat = lambda x: float(x.text()) if x.text() else None
+        validateSize = lambda x: int(x) if x is not None and 256 <= x <= 1024  else None
+        validateSteps = lambda x: int(x) if x is not None and 1 <= x <= 100 else None
+        validateGuidance = lambda x: float(x) if x is not None and 0.0 <= x <= 20.0 else None
         
+        currentGeneratorType = self.buttonGenerateType.currentText()
         prompt = self._format_text(self.prompt.toPlainText())
-        nprompt = self._format_text(self.nprompt.toPlainText())
-        model = self.btn_model.currentText()
-        image = self.left_img_b64
-        condition = self.btn_condition.currentText()
-        
-        if not prompt and curr_generator_type not in {"UpScale", "FaceFix"}:
+        negativePrompt = self._format_text(self.negativePrompt.toPlainText())
+        model = self.buttonModel.currentText()
+        image = self.leftImgB64
+        condition = self.buttonCondition.currentText()
+        height = validateSize(convertToFloat(self.inputHeight))
+        width = validateSize(convertToFloat(self.inputWidth))
+        steps = validateSteps(convertToFloat(self.inputSteps))
+        guidance = validateGuidance(convertToFloat(self.inputGuidance))
+                
+        if not prompt and currentGeneratorType not in {"UpScale", "FaceFix"}:
             return
         
         self.start_worker()
         self.worker = ImageGeneratorThread(
             model=model, 
             prompt=prompt, 
-            nprompt=nprompt, 
+            negativePrompt=negativePrompt, 
             image=image,
             condition=condition,
-            generator_type=curr_generator_type,
+            currentGeneratorType=currentGeneratorType,
+            height=height,
+            width=width,
+            steps=steps,
+            guidance=guidance
         )
-        if curr_generator_type == "Text to Image":
+        if currentGeneratorType == "Text to Image":
             self.worker.b64_ready.connect(self.update_left_img)
         else:
             self.worker.b64_ready.connect(self.update_right_img)
@@ -161,18 +189,18 @@ class MainWindow(UI):
                 
     
     def update_opts_buttons(self) -> None:
-        curr_model = self.btn_model.currentText()
-        curr_generate_type = self.btn_generate_type.currentText()
-        self.btn_condition.addItems(self.models["Condition"]["models"])
-        self.btn_model.clear()
-        self.btn_model.addItems(self.models[curr_generate_type]["models"])
-        self.btn_image.setEnabled(self.models[curr_generate_type]["image"])
-        self.btn_condition.setEnabled(self.models[curr_generate_type]["condition"])
-        self.btn_model.setCurrentText(curr_model)
+        curr_model = self.buttonModel.currentText()
+        curr_generate_type = self.buttonGenerateType.currentText()
+        self.buttonCondition.addItems(self.models["Condition"]["models"])
+        self.buttonModel.clear()
+        self.buttonModel.addItems(self.models[curr_generate_type]["models"])
+        self.buttonOpenImg.setEnabled(self.models[curr_generate_type]["image"])
+        self.buttonCondition.setEnabled(self.models[curr_generate_type]["condition"])
+        self.buttonModel.setCurrentText(curr_model)
 
     def open_image(self) -> None:
         filename, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Open", self.IMG_FOLDER, "Image File (*.png; *.jpeg)"
+            self, "Open", self.IMG_FOLDER, "Image File (*.png; *.jpeg; *.jpg)"
         )
         if filename:
             self.update_left_img(filename=filename)
@@ -185,31 +213,34 @@ class MainWindow(UI):
     def update_left_img(self, b64: str = None, filename: str = None) -> None:
         if filename:
             with open(filename, "rb") as f:
-                self.left_img_b64 = base64.b64encode(f.read()).decode()
+                self.leftImgB64 = base64.b64encode(f.read()).decode()
             pixmap = QtGui.QPixmap(filename)
         elif b64:
-            self.left_img_b64 = b64
+            self.leftImgB64 = b64
             pixmap = self.convert_to_pixmap(b64)
-            
-        self.left_img.setPixmap(pixmap)
+        if pixmap.width() < pixmap.height():
+            pixmap = pixmap.scaledToHeight(pixmap.width())
+        else:
+            pixmap = pixmap.scaledToWidth(pixmap.height())
+        self.leftImg.setPixmap(pixmap)
 
     def update_right_img(self, b64: str) -> None:
-        self.right_img_b64 = b64
+        self.rightImgB64 = b64
         pixmap = self.convert_to_pixmap(b64)
-        self.right_img.setPixmap(pixmap)
+        self.rightImg.setPixmap(pixmap)
 
     def clear_imgs(self) -> None:
-        self.left_img.clear()
-        self.right_img.clear()
+        self.leftImg.clear()
+        self.rightImg.clear()
         
     def swap_imgs(self) -> None:
         try:
-            left_img = self.left_img.pixmap().copy()
-            right_img = self.right_img.pixmap().copy()
+            left_img = self.leftImg.pixmap().copy()
+            right_img = self.rightImg.pixmap().copy()
         except AttributeError:
             return
-        self.left_img.setPixmap(right_img)
-        self.right_img.setPixmap(left_img)
+        self.leftImg.setPixmap(right_img)
+        self.rightImg.setPixmap(left_img)
         
     def set_image_dict(self) -> None:
         folder_name = QtWidgets.QFileDialog.getExistingDirectory(
@@ -219,7 +250,7 @@ class MainWindow(UI):
             return self.update_img_dict(folder_name)
     
     def update_img_dict(self, folder_name: str) -> None:
-        self.image_dict.setText(folder_name)
+        self.imgDirectory.setText(folder_name)
         self.IMG_FOLDER = folder_name
 
         

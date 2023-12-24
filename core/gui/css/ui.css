@@ -9,6 +9,7 @@ QWidget {
 }
 
 QTextEdit,
+QLineEdit,
 QPushButton,
 QComboBox,
 QLabel#loading_label {

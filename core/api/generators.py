@@ -44,6 +44,8 @@ class BaseGenerator(BaseRequest):
         payload = self.get_payload()
         headers = self.get_headers()
         
+        logger.debug(f"Payload: {payload}")
+        
         response = requests.post(self.BASE_URL, json=payload, headers=headers)
         
         if self.check_response(response) is True:
@@ -83,7 +85,6 @@ class TextToImage(BaseGenerator):
         self.scheduler = scheduler
         self.output_format = output_format
             
-        logger.debug(self.get_payload())
         logger.info("[Text to Image] Image processing in progress")
 
 
@@ -120,7 +121,6 @@ class ControlNet(BaseGenerator):
         self.scheduler = scheduler
         self.output_format = output_format
             
-        logger.debug(self.get_payload())
         logger.info("[ControlNet] Image processing in progress")
             
 
@@ -141,7 +141,6 @@ class UpScale(BaseGenerator):
         self.scale = scale
         self.output_format = output_format
         
-        logger.debug(self.get_payload())
         logger.info("[UpScale] Image processing in progress")
 
 
@@ -160,5 +159,4 @@ class FaceFix(BaseGenerator):
         self.image = image
         self.output_format = output_format
         
-        logger.debug(self.get_payload())
         logger.info("[FaceFix] Image processing in progress")

@@ -2,6 +2,17 @@ import typing
 from PyQt5 import QtWidgets, QtCore, QtGui
 from core.paths import GUI_CSS, GUI_IMAGES
 
+SizePolicy = QtWidgets.QSizePolicy.Policy
+
+"""
+Minimum: 1
+Maximum: 4
+Preferred: 5       
+MinimumExpanding: 3
+Expanding: 7       
+Ignored: 13 
+"""
+
 
 class VLayout(QtWidgets.QVBoxLayout):
     def __init__(
@@ -89,7 +100,6 @@ class Label(QtWidgets.QLabel):
         text: typing.Optional[str] = None,
         width: typing.Optional[int] = None,
         height: typing.Optional[int] = None,
-        image: typing.Optional[bool] = False,
     ) -> None:
         super().__init__(parent=parent)
     
@@ -98,7 +108,6 @@ class Label(QtWidgets.QLabel):
         
         if width: self.setFixedWidth(width)
         if height: self.setFixedHeight(height)
-        if image: self.setSizePolicy(0, 0); self.setScaledContents(True)
 
 
 class UI(QtWidgets.QWidget):
@@ -118,67 +127,96 @@ class UI(QtWidgets.QWidget):
         self.create_widgets()
     
     def create_containers(self) -> None:
-        self.cont_text = QtWidgets.QWidget()
-        self.cont_menu = QtWidgets.QWidget()
-        self.cont_opts = QtWidgets.QWidget()
-        self.cont_img_dict = QtWidgets.QWidget()
-        self.cont_imgs = QtWidgets.QWidget()
-        self.cont_bottom = QtWidgets.QWidget()
+        self.containerPrompt = QtWidgets.QWidget()
+        self.containerGenButtons = QtWidgets.QWidget()
+        self.containerGenOptions = QtWidgets.QWidget()
+        self.containerGenOptionals = QtWidgets.QWidget()
+        self.containerImgDirectory = QtWidgets.QWidget()
+        self.containerResultImgs = QtWidgets.QWidget()
+        self.containerResultButtons = QtWidgets.QWidget()
     
     def create_layouts(self) -> None:
-        self.layout_main = VLayout(self, rows=5)
-        self.layout_main.setObjectName("main_layout")
+        self.layoutMain = VLayout(self, rows=5)
+        self.layoutMain.setObjectName("main_layout")
         
-        self.layout_text = HLayout(self.cont_text, columns=2)
-        self.layout_menu = HLayout(self.cont_menu, columns=2)
-        self.layout_opts = HLayout(self.cont_opts, columns=3)
-        self.layout_img_dict = HLayout(self.cont_img_dict, columns=2)
-        self.layout_imgs = HLayout(self.cont_imgs, columns=2)
-        self.layout_bottom = HLayout(self.cont_bottom, columns=2)
+        self.layoutPrompt = HLayout(self.containerPrompt, columns=2)
+        self.layoutGenButtons = HLayout(self.containerGenButtons, columns=2)
+        self.layoutGenOptions = HLayout(self.containerGenOptions, columns=3)
+        self.layoutGenOptionals = HLayout(self.containerGenOptionals, columns=4)
+        self.layoutImgDirectory = HLayout(self.containerImgDirectory, columns=2)
+        self.layoutResultImgs = HLayout(self.containerResultImgs, columns=2)
+        self.layoutResultButtons = HLayout(self.containerResultButtons, columns=2)
         
-        self.layout_main.addWidgets(
-            self.cont_text, self.cont_menu, self.cont_opts, 
-            self.cont_img_dict, self.cont_imgs, self.cont_bottom)
+        self.layoutMain.addWidgets(
+            self.containerPrompt, 
+            self.containerGenButtons, 
+            self.containerGenOptions,
+            self.containerGenOptionals,
+            self.containerImgDirectory, 
+            self.containerResultImgs, 
+            self.containerResultButtons
+        )
     
     def create_widgets(self) -> None:
+        # Prompts
         self.prompt = TextEdit(placeholder="Prompt")
-        self.nprompt = TextEdit(placeholder="Negative Prompt")
+        self.negativePrompt = TextEdit(placeholder="Negative Prompt")
         self.prompt.setAcceptRichText(False)
-        self.nprompt.setAcceptRichText(False)
+        self.negativePrompt.setAcceptRichText(False)
+        self.layoutPrompt.addWidgets(self.prompt, self.negativePrompt)
         
-        self.btn_generate = Button(text="Generate")
-        self.btn_generate_type = ComboBox()
+        # Generate buttons
+        self.buttonGenerate = Button(text="Generate")
+        self.buttonGenerateType = ComboBox()
+        self.layoutGenButtons.addWidgets(self.buttonGenerate, self.buttonGenerateType)
         
-        self.btn_model = ComboBox()
-        self.btn_image = Button(text="Image")
-        self.btn_condition = ComboBox()
+        # Generation options buttons
+        self.buttonModel = ComboBox()
+        self.buttonOpenImg = Button(text="Image")
+        self.buttonCondition = ComboBox()
+        self.layoutGenOptions.addWidgets(self.buttonModel, self.buttonOpenImg, self.buttonCondition)
         
-        self.btn_image_dict = Button(text="Image Directory")
-        self.image_dict = Label(text="image_dict")
-        self.image_dict.setEnabled(False)
+        # Generation optionals values
+        self.inputWidth = QtWidgets.QLineEdit()
+        self.inputHeight = QtWidgets.QLineEdit()
+        self.inputSteps = QtWidgets.QLineEdit()
+        self.inputGuidance = QtWidgets.QLineEdit()
+        self.inputWidth.setValidator(QtGui.QIntValidator(256, 1024, self))
+        self.inputHeight.setValidator(QtGui.QIntValidator(256, 1024, self))
+        self.inputSteps.setValidator(QtGui.QIntValidator(1, 100, self))
+        self.inputGuidance.setValidator(QtGui.QDoubleValidator(0.0, 20.0, 1))
+        self.inputHeight.setPlaceholderText("Height (256 - 1024)")
+        self.inputWidth.setPlaceholderText("Width (256 - 1024)")
+        self.inputSteps.setPlaceholderText("Steps (1 - 100)")
+        self.inputGuidance.setPlaceholderText("Guidance (0 - 20)")
+        self.layoutGenOptionals.addWidgets(self.inputWidth, self.inputHeight, self.inputSteps, self.inputGuidance)
         
-        self.left_img = Label(height=512, width=512, image=True)
-        self.right_img = Label(height=512, width=512, image=True)
-        self.left_img_b64 = None
-        self.right_img_b64 = None
+        # Set image save directory
+        self.buttonImgDirectory = Button(text="Image Directory")
+        self.imgDirectory = Label(text="image_dict")
+        self.imgDirectory.setEnabled(False)
+        self.layoutImgDirectory.addWidgets(self.buttonImgDirectory, self.imgDirectory)
+        self.layoutImgDirectory.setStretch(0, 1)
+        self.layoutImgDirectory.setStretch(1, 5)
         
-        self.btn_clear = Button(text="Clear")
-        self.btn_swap = Button(text="Swap Images")
+        # Generated image labels
+        self.leftImgB64, self.rightImgB64 = None, None
+        self.leftImg = Label(height=512, width=512)
+        self.rightImg = Label(height=512, width=512)
+        self.leftImg.setSizePolicy(SizePolicy.Minimum, SizePolicy.Maximum)
+        self.rightImg.setSizePolicy(SizePolicy.Minimum, SizePolicy.Maximum)
+        self.layoutResultImgs.addWidgets(self.leftImg, self.rightImg)
         
-        self.loading_movie = QtGui.QMovie(str(GUI_IMAGES.joinpath("loading.gif")))
-        self.loading_movie.setScaledSize(QtCore.QSize(20, 20))
+        # Generated image management buttons
+        self.buttonClearImgs = Button(text="Clear")
+        self.buttonSwapImgs = Button(text="Swap Images")
+        self.layoutResultButtons.addWidgets(self.buttonClearImgs, self.buttonSwapImgs)
         
-        self.loading_label = Label(text="loading_label", height=30)
-        self.loading_label.setMovie(self.loading_movie)
-        self.loading_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.loading_label.hide()
-        
-        self.layout_text.addWidgets(self.prompt, self.nprompt)
-        self.layout_menu.addWidgets(self.btn_generate, self.btn_generate_type)
-        self.layout_opts.addWidgets(self.btn_model, self.btn_image, self.btn_condition)
-        self.layout_img_dict.addWidgets(self.btn_image_dict, self.image_dict)
-        self.layout_imgs.addWidgets(self.left_img, self.right_img)
-        self.layout_bottom.addWidgets(self.btn_clear, self.btn_swap)
-        self.layout_menu.insertWidget(0, self.loading_label)
-        self.layout_img_dict.setStretch(0, 1)
-        self.layout_img_dict.setStretch(1, 5)
+        # Generate animation
+        self.loadingMovie = QtGui.QMovie(str(GUI_IMAGES.joinpath("loading.gif")))
+        self.loadingMovie.setScaledSize(QtCore.QSize(20, 20))
+        self.loadingAnim = Label(text="loading_label", height=30)
+        self.loadingAnim.setMovie(self.loadingMovie)
+        self.loadingAnim.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.loadingAnim.hide()
+        self.layoutGenButtons.insertWidget(0, self.loadingAnim)

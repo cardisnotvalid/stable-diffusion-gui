@@ -10,4 +10,4 @@ def setup_logger(debug: bool = False) -> None:
     logger.add(sys.stdout, level="DEBUG" if debug else "INFO", format=LOG_FORMAT)
 
 
-setup_logger()
+setup_logger(True)
